@@ -1,0 +1,21 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ template "namespace_rm.fullname" . }}-cronjob
+  labels:
+    {{- include "namespace_rm.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.schedule | quote }}
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 0
+      template:
+        spec:
+          containers:
+          - name: namespace-manager
+            image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+            imagePullPolicy: {{ .Values.image.pullPolicy }}
+            env:
+            - name: ARGOCD_NAMESPACE_LABEL
+              value: {{ .Values.argocdNamespaceLabel }}
+          restartPolicy: Never

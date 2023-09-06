@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+    braches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    - name: Build image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: false
+        tags: joonvena/namespace-rm:${{ github.sha }}
+  
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        tests: ["unit", "flake8", "black", "isort"]
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    - name: ${{ matrix.tests }}
+      run: |
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+        if [[ "${{ matrix.tests }}" == "unit" ]]; then
+          pytest -v
+        elif [[ "${{ matrix.tests }}" == "flake8" ]]; then
+          flake8
+        elif [[ "${{ matrix.tests }}" == "black" ]]; then
+          black --check --line-length=80 .
+        elif [[ "${{ matrix.tests }}" == "isort" ]]; then
+          isort --check .
+        fi
